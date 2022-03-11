@@ -1,16 +1,22 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 
-function Cart(cartData) {
+function Cart() {
 
     const [cartItems, setCartItems] = useState([])
+    const [cartCount, setCartCount] = useState()
 
     useEffect(() => {
         let temp = []
         temp = JSON.parse(window.localStorage.getItem('items'));
         setCartItems([...temp])
+        setCartCount(temp.length)
     }, [])
 
+    useEffect(() => {
+        localStorage.setItem('items',JSON.stringify(cartItems))
+        setCartCount(cartItems.length)
+      }, [cartItems])  
 
     let navigate = useNavigate()
     const { state } = useLocation();
@@ -27,8 +33,41 @@ function Cart(cartData) {
     const goToCart = () => {
         navigate('/cart');
     }
-    console.log(cartItems)
-    console.log(state);
+
+    const increaseQuantity = (id) => {
+        setCartItems(
+            cartItems.map((item) =>
+              item._id === id
+                ? { ...item, quantity: item.quantity + 1 }
+                : item
+            )
+          );
+    }
+
+    const decreaseQuantity = (id) => {
+        setCartItems(
+            cartItems.map((item) =>
+              item._id === id
+                ? { ...item, quantity: item.quantity - 1 }
+                : item
+            )
+          );
+    }
+
+    const removeItem = (id) => {
+        setCartItems(cartItems.filter((item) => item._id !== id)
+          );
+    }
+
+    const calculateAmount = (arr) => {
+        let amount=0;
+        arr.map((item)=> (
+            amount+=item.price*item.quantity
+        ))
+        return amount;
+    }
+    // console.log(cartItems)
+    
 
     return (
         <div className="container">
@@ -37,36 +76,31 @@ function Cart(cartData) {
                     <a href="/">My Ecommerce Site</a>
 
                     <span className="pull-right">
-                        <button onClick={() => goToCart()}>Cart (0)</button>
+                        <button onClick={() => goToCart()}>Cart ({cartCount})</button>
                     </span>
                 </h1>
                 <hr></hr>
                 <div className="col-md-12">
                     <div className="panel panel-default">
-                        <div className="panel-heading">MY CART ()
+                        <div className="panel-heading">MY CART ({cartCount})
                         </div>
                         <div className="panel-body">
                             {/* {console.log(cartItems)} */}
-
-                            <form>
                                 {cartItems && cartItems.map((product) =>
-                                    <div className="row">
+                                    <div className="row" key={product._id}>
                                         <div className="col-md-3"> <img src={`http://interviewapi.ngminds.com/${product.image}`} width="100px" height="200px"></img></div>
                                         <div className="col-md-3"> {product.name}
                                             <br /><i className="fa fa-inr"></i>{product.price}
                                         </div>
-                                        <div className="col-md-3"> quantity
+                                        <div className="col-md-4 d-flex"> quantity
                                             <br />
-                                            <button ng-click="decrement()" className='qtyminus' ng-disabled="qty<=0">-</button>
-                                            <input ng-model="qty" type='text' name='quantity' className='qty' size="5px"
-                                                value="2" />
-                                            <button ng-click="increment()">+</button>
+                                            <button onClick={()=>decreaseQuantity(product._id)}>-</button>
+                                            <input size="5px" value={product.quantity} />
+                                            <button onClick={()=>increaseQuantity(product._id)}>+</button>
                                         </div>
-                                        <div className="col-md-3"> <a className="btn btn-warning">remove</a></div>
+                                        <div className="col-md-2"> <button onClick={()=>removeItem(product._id)} className="btn btn-warning">remove</button></div>
                                     </div>
                                 )}
-                            </form>
-
                             <hr></hr>
                             <div className="row">
                                 <div className="col-md-9">
@@ -74,7 +108,7 @@ function Cart(cartData) {
                                     </label>
                                 </div>
                                 <div className="col-md-3 ">
-                                    400
+                                    {calculateAmount(cartItems)}
                                 </div>
                             </div>
                         </div>
