@@ -6,11 +6,21 @@ function Home() {
   const [allProducts, setAllProducts] = useState([])
   const [listItems, setListItems] = useState([])
   const [cartItems, setCartItems] = useState([])
+  const [cartCount, setCartCount] = useState(0)
   const colors = ["bg-info", "bg-success", "bg-warning", "bg-danger"];
-
+  
   let navigate = useNavigate()  
 
   useEffect(() => {
+
+    let localdata = JSON.parse(localStorage.getItem('items'))
+    if(localdata==null){
+        localStorage.setItem('items',[])
+    }
+    else{
+        setCartItems(localdata)
+    }
+
     axios
       .get("http://interviewapi.ngminds.com/api/getAllProducts")
       .then((res) => {
@@ -24,28 +34,38 @@ function Home() {
         }
         setListItems(fourProd);
       });
+
+    //   let count = localdata.length
+    //   setCartCount(count)
+    //   console.log(count);
+
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem('items',JSON.stringify(cartItems))
+    setCartCount(cartItems.length)
+  }, [cartItems])
+  
 
-  // useEffect(() => {
-  //   let allProductsUrl = 'http://interviewapi.ngminds.com/api/getAllProducts'
-  //   axios.get(allProductsUrl)
-  //     .then(response => {
-  //       setAllProducts(response.data.products)
-  //     })
-  // }, [])
-
-  const addToCart = (id) => {
-    console.log(id);
-    setCartItems([...cartItems,id])
-    window.localStorage.setItem('items',JSON.stringify(cartItems))
+  const addToCart = (product) => {
+    if (cartItems.filter((item) => item._id === product._id).length)
+      setCartItems(
+        cartItems.map((item) =>
+          item._id === product._id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        )
+      );
+    else {
+      setCartItems([...cartItems, { ...product, quantity: 1 }]);
+    }
   } 
 
   const goToCart = () => {
-    navigate('/cart',{state:{cartData:cartItems}});
+    navigate('/cart');
   }
   console.log(cartItems);
-  console.log(allProducts);
+//   console.log(allProducts);
 
   return (
     <>
@@ -53,7 +73,7 @@ function Home() {
         <h1>
           <a href="/">My Ecommerce Site</a>
           <span className="pull-right">
-            <button onClick={()=>goToCart()}>Cart (0)</button>
+            <button onClick={()=>goToCart()}>Cart ({cartCount})</button>
           </span>
         </h1>
         <hr></hr>
