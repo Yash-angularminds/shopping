@@ -5,6 +5,8 @@ function Cart() {
 
     const [cartItems, setCartItems] = useState([])
     const [cartCount, setCartCount] = useState()
+    let amount=0;
+
 
     useEffect(() => {
         let temp = []
@@ -27,7 +29,11 @@ function Cart() {
     }
 
     const goToOrder = () => {
-        navigate('/place_order')
+        if(amount>500){
+            navigate('/place_order')
+        }else{
+            window.alert("Cart amount less than 500")
+        }
     }
 
     const goToCart = () => {
@@ -48,7 +54,7 @@ function Cart() {
         setCartItems(
             cartItems.map((item) =>
               item._id === id
-                ? { ...item, quantity: item.quantity - 1 }
+                ? (item.quantity>1?{ ...item, quantity: item.quantity - 1 }:item)
                 : item
             )
           );
@@ -60,14 +66,11 @@ function Cart() {
     }
 
     const calculateAmount = (arr) => {
-        let amount=0;
         arr.map((item)=> (
             amount+=item.price*item.quantity
         ))
         return amount;
     }
-    // console.log(cartItems)
-    
 
     return (
         <div className="container">
@@ -85,7 +88,7 @@ function Cart() {
                         <div className="panel-heading">MY CART ({cartCount})
                         </div>
                         <div className="panel-body">
-                            {/* {console.log(cartItems)} */}
+                            {cartItems.length<1?<h1>Your cart is empty</h1>:null}
                                 {cartItems && cartItems.map((product) =>
                                     <div className="row" key={product._id}>
                                         <div className="col-md-3"> <img src={`http://interviewapi.ngminds.com/${product.image}`} width="100px" height="200px"></img></div>
