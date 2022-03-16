@@ -1,13 +1,20 @@
-import React, { useState, useEffect } from 'react'
+import React, {useEffect} from 'react'
+import useState from 'react-usestateref'
 import { useNavigate } from 'react-router-dom'
-
+import axios from 'axios'
+import { useForm } from 'react-hook-form';
 
 function Placeorder() {
-
     const [cartItems, setCartItems] = useState([])
     const [cartCount, setCartCount] = useState()
-    const [person, setPerson] = useState('')
+    const [person, setPerson, personRef] = useState('')
     const [address, setAddress] = useState('')
+    const [total, setTotal] = useState(0)
+    const {
+        register,
+        handleSubmit,
+        formState: { errors }
+    } = useForm();
 
     useEffect(() => {
         let temp = []
@@ -15,15 +22,11 @@ function Placeorder() {
         setCartItems([...temp])
         setCartCount(temp.length)
     }, [])
-
-    let navigate = useNavigate()  
-
+    let navigate = useNavigate()
     const goToCart = () => {
         navigate('/cart');
     }
-
     const calculateSubTotal = (current) => {
-        // console.log(arr);
         let arr = []
         arr = [current]
         let price = 0;
@@ -34,7 +37,6 @@ function Placeorder() {
         }
         return price;
     }
-
     const calculateAmount = (arr) => {
         let amount=0;
         arr.map((item)=> (
@@ -42,13 +44,36 @@ function Placeorder() {
         ))
         return amount;
     }
-    
+    const confirmOrder = async (data) => {
+        let arr = []
+        let amount = 0
+        for(let i=0;i<cartItems.length;i++){
+            arr.push({ productID:cartItems[i]._id,
+                    qty:cartItems[i].quantity,
+                    price:cartItems[i].price,
+                    total:cartItems[i].quantity*cartItems[i].price
+            })
+            amount+=cartItems[i].quantity*cartItems[i].price
+        }
+        let placeOrderData={
+            personName : data.personName,
+            deliveryAddress : data.deliveryAddress,
+            productsOrdered:arr,
+            orderTotal:amount
+        }
+        console.log(placeOrderData)
+
+        await axios.post('http://interviewapi.ngminds.com/api/placeOrder',placeOrderData)
+        alert("Order placed successfully")
+        localStorage.clear()
+        navigate('/home')
+    }
+
   return (
     <div className="container">
         <div className="row">
             <h1>
                 <a href="/">My Ecommerce Site</a>
-                
                 <span className="pull-right">
                     <button onClick={()=>goToCart()}>Cart ({cartCount})</button>
                 </span>
@@ -58,8 +83,7 @@ function Placeorder() {
                 <div className="panel panel-default">
                     <div className="panel-heading">Place Order</div>
                     <div className="panel-body">
-                        <form className="form-horizontal" role="form">
-
+                        <form className="form-horizontal" onSubmit={handleSubmit(confirmOrder)}>
                             <table className="table table-striped">
                                 <thead className="table-head">
                                     <tr>
@@ -83,7 +107,7 @@ function Placeorder() {
                                         <td>
                                             <strong>{cartCount}</strong>
                                         </td>
-                                        <td><strong><i class="fa fa-inr"></i>{calculateAmount(cartItems)}</strong></td>
+                                        <td><strong><i className="fa fa-inr"></i>{calculateAmount(cartItems)}</strong></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -95,20 +119,29 @@ function Placeorder() {
                             <div className="form-group">
                                 <label for="inputName3" className="col-sm-2 control-label">Name</label>
                                 <div className="col-sm-6">
-                                    <input className="form-control" id="inputName3" placeholder="Name" onChange={(e)=>setPerson(e.target.value)}></input>
+                                    <input className="form-control"
+                                    id="inputName3"
+                                    placeholder="Name" 
+                                    {...register("personName", {required :"Name Required"})}
+                                    ></input>
+                                    {errors.name && <small className="text-danger">Name is Required</small>}
                                 </div>
                             </div>
                             <div className="form-group">
                                 <label for="inputEmail3" className="col-sm-2 control-label">Address</label>
                                 <div className="col-sm-6">
-                                    <textarea className="form-control" id="inputEmail3"
-                                        placeholder="Deliver Address" onChange={(e)=>setAddress(e.target.value)}></textarea>
+                                    <textarea className="form-control" id="inputEmail3" 
+                                    placeholder="Deliver Address"
+                                    {...register("deliveryAddress", {required :"Address Required"})}
+                                    ></textarea>
+                                    {errors.address && <small className="text-danger">Address is Required</small>}
                                 </div>
                             </div>
                             <div className="form-group">
                                 <label className="col-sm-2 control-label"></label>
                                 <div className="col-sm-6">
-                                    <button className="btn btn-warning">Confirm Order</button>
+                                    <button className="btn btn-warning" type="submit" 
+                                    >Confirm Order</button>
                                 </div>
                             </div>
                             </form>
@@ -119,5 +152,4 @@ function Placeorder() {
     </div>
   )
 }
-
 export default Placeorder
