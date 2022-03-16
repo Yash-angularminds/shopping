@@ -1,20 +1,20 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
+import './style.css'
 
 function Home() {
   const [allProducts, setAllProducts] = useState([])
-  const [listItems, setListItems] = useState([])
   const [cartItems, setCartItems] = useState([])
   const [cartCount, setCartCount] = useState(0)
   const [defaultSort, setDefaultSort] = useState([])
-  const [sorting, setSorting] = useState("default")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
   const colors = ["bg-info", "bg-success", "bg-warning", "bg-danger"];
 
   let navigate = useNavigate()
 
   useEffect(() => {
-
     let localdata = JSON.parse(localStorage.getItem('items'))
     if (localdata == null) {
       localStorage.setItem('items', [])
@@ -26,22 +26,9 @@ function Home() {
     axios
       .get("http://interviewapi.ngminds.com/api/getAllProducts")
       .then((res) => {
-        setAllProducts(res.data.products);
-        let fourProd = [];
-        let tempProds = res.data.products;
-        let i = 0;
-        while (i < tempProds.length) {
-          fourProd.push(tempProds.slice(i, i + 4));
-          i += 4;
-        }
-        setDefaultSort(fourProd)
-        setListItems(fourProd);
+        setAllProducts([...res.data.products]);
+        setDefaultSort([...res.data.products]);
       });
-
-    //   let count = localdata.length
-    //   setCartCount(count)
-    //   console.log(count);
-
   }, []);
 
   useEffect(() => {
@@ -69,29 +56,72 @@ function Home() {
   }
 
   const sortItems = (e) => {
-    let sort = []
     if (e.target.value === 'low') {
-      sort = allProducts.sort((a, b) => (parseInt(a.price) > parseInt(b.price)) ? 1 : ((parseInt(b.price) > parseInt(a.price)) ? -1 : 0))
+      setAllProducts([...allProducts.sort((a, b) => (parseInt(a.price) > parseInt(b.price)) ? 1 : ((parseInt(b.price) > parseInt(a.price)) ? -1 : 0))])
     }
     else if (e.target.value === 'high') {
-      sort = allProducts.sort((a, b) => (parseInt(a.price) > parseInt(b.price)) ? 1 : ((parseInt(b.price) > parseInt(a.price)) ? -1 : 0))
-      sort = sort.reverse()
+      setAllProducts([...allProducts.sort((a, b) => (parseInt(a.price) < parseInt(b.price)) ? 1 : ((parseInt(b.price) < parseInt(a.price)) ? -1 : 0))])
     }
     else {
-      window.location.reload()
+      setAllProducts([...defaultSort])
     }
-    let fourProd = [];
-    let tempProds = sort;
-    let i = 0;
-    while (i < tempProds.length) {
-      fourProd.push(tempProds.slice(i, i + 4));
-      i += 4;
-    }
-    setListItems(fourProd);
-    console.log(sort);
   }
-  console.log(listItems);
-  //   console.log(allProducts);
+
+  //     <-- Pagination -->
+
+  const renderProducts = (data) => {
+    let fourProd = [];
+        let tempProds = data;
+        let i = 0;
+        while (i < tempProds.length) {
+          fourProd.push(tempProds.slice(i, i + 4));
+          i += 4;
+        }
+    return (
+      fourProd.length && fourProd.map((row) => (
+        <>
+          <div className="row">
+            {row.length &&
+              row.map((product, i) => (
+                <div className="col-md-3" style={{ marginTop: "10px" }}>
+                  <div className={colors[i % 4]}>
+                    <img src={`http://interviewapi.ngminds.com/${product.image}`} width="130" height="250"></img>
+                    <br></br>
+                    <p>{product.name}</p>
+                    <p><i className="fa fa-inr"></i>{product.price}</p>
+                    <button className="btn btn-warning" onClick={() => addToCart(product)}>Add to Cart</button>
+                  </div>
+                </div>
+              ))}
+          </div>
+          <hr/>
+        </>
+      ))
+    )
+  }
+
+  const pages = []
+  for(let i = 1; i<= Math.ceil(allProducts.length/itemsPerPage); i++){
+    pages.push(i)
+  }
+
+  const handlePrevious = () => {
+    if(currentPage==1){
+      return
+    }
+    setCurrentPage(currentPage-1)
+  }
+
+  const handleNext = () => {
+    if(currentPage==pages.length){
+      return
+    }
+    setCurrentPage(currentPage+1)
+  }
+
+const indexOfLastitem = currentPage * itemsPerPage;
+const indexOfFirstItem = indexOfLastitem - itemsPerPage;
+const currentItems = allProducts.slice(indexOfFirstItem,indexOfLastitem)
 
   return (
     <>
@@ -113,24 +143,7 @@ function Home() {
         </div>
         <br></br>
         <br></br>
-        {listItems.length && listItems.map((row) => (
-          <>
-            <div className="row">
-              {row.length &&
-                row.map((product, i) => (
-                  <div className="col-md-3">
-                    <div className={colors[i % 4]}>
-                      <img src={`http://interviewapi.ngminds.com/${product.image}`} width="100" height="200"></img>
-                      <br></br>
-                      <p>{product.name}</p>
-                      <p><i className="fa fa-inr"></i>{product.price}</p>
-                      <button className="btn btn-warning" onClick={() => addToCart(product)}>Add to Cart</button>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </>
-        ))}
+        {renderProducts(currentItems)}
         <hr
           style={{
             color: "#909090",
@@ -138,6 +151,28 @@ function Home() {
             borderColor: "#909090",
           }}
         />
+        <div className="row">
+            <div className="col-sm-6">
+                <ul className="pagination" style={{cursor:"pointer"}}>
+                    <li className={currentPage==1? "page-item disabled":"page-item"} onClick={()=>handlePrevious()}><a className="page-link">Previous</a></li>
+                    {pages?pages.map((option,i)=>
+                      <li onClick={()=>setCurrentPage(i+1)} className={currentPage==i+1?"active":null}><a className="page-link">{i+1}</a></li>
+                    ):""}
+                    <li className={currentPage==pages.length? "page-item disabled":"page-item"} onClick={()=>handleNext()}><a className="page-link">Next</a></li>
+                </ul>
+            </div>
+            <div className="col-sm-6 text-right">
+                <div style={{marginTop: "25px",marginRight : "30px"}}>
+                    <label for="" className="control-label">Items Per Page:</label>
+                    <select onChange={(e)=>setItemsPerPage(e.target.value)}>
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+            </div>
+        </div>
       </div>
     </>
   )
